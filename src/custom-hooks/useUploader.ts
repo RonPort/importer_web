@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import localforage from "localforage";
 
 const uploadStore = localforage.createInstance({ name: "uploadQueue" });
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 2;
 const API_URL = import.meta.env.VITE_API_URL;
 
 type FileMeta = {
@@ -76,6 +76,8 @@ export const useUploaderHandlers = () => {
 
     for (let i = 0; i < files.length; i += BATCH_SIZE) {
       batch = files.slice(i, i + BATCH_SIZE);
+      console.log("batch ", batch);
+
       batchDatas = await Promise.all(
         batch.map((fileMeta) => {
           const file = allFiles.find(
@@ -109,10 +111,19 @@ export const useUploaderHandlers = () => {
       await new Promise<void>((resolve) => {
         const worker = new Worker("/uploadWorker.js");
         worker.onmessage = (event) => {
-          updateFileStatus(event.data);
-          resolve();
+          if (event.data.id) {
+            updateFileStatus(event.data);
+            console.log("Response from the worker ", event.data, "batch ", i);
+          }
+
+          if (event.data.status === "files-uploaded") {
+            console.log("Response from the worker ", event.data, "batch ", i);
+            resolve();
+          }
         };
-  
+
+        console.log("Now i'm posting a new batch", "batch ", i);
+
         worker.postMessage({
           files: batch,
           fileDatas: batchDatas,

@@ -11,6 +11,9 @@ self.onmessage = async function (e) {
   for (let i = 0; i < files.length; i++) {
     await uploadFileWithRetry(files[i], fileDatas[i], apiUrl);
   }
+  self.postMessage({
+    status: "files-uploaded",
+  });
   // Optionally: self.close();
 };
 
